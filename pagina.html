@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bouquet de Tulipanes Orgánico</title>
+    <style>
+        :root {
+            --stem-color: #4a7545;
+            --ribbon-color: #c9184a;
+        }
+
+        body {
+            margin: 0;
+            height: 100dvh; /* 100dvh es perfecto para móviles */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #010008; /* Fondo muy oscuro por fuera del marco */
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            color: white;
+            touch-action: none; 
+        }
+
+        /* --- MARCO MÓVIL ESTRICTO --- */
+        #app-frame {
+            position: relative;
+            width: 100%;
+            max-width: 430px; /* Ancho típico de un iPhone Pro Max */
+            height: 100%;
+            max-height: 932px;
+            background: linear-gradient(to bottom, #020111 0%, #151030 45%, #281a4a 100%);
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8); /* Sombra para resaltar en PC */
+        }
+
+        .moon {
+            position: absolute;
+            top: 8%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90px;
+            height: 90px;
+            background: #fff6d9;
+            border-radius: 50%;
+            box-shadow: 0 0 50px 15px rgba(255, 246, 217, 0.4), inset -10px -10px 20px rgba(0,0,0,0.1);
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle infinite alternate;
+        }
+
+        /* Canvas de Fuegos Artificiales */
+        #fireworks-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2; 
+            pointer-events: none; 
+        }
+
+        /* Capas del bosque en SVG para la silueta */
+        .forest-layer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-repeat: repeat-x;
+            background-position: bottom;
+        }
+
+        .forest-back {
+            height: 40%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 200" preserveAspectRatio="none"><path d="M0,200 L0,120 L30,150 L60,80 L90,140 L120,70 L150,130 L180,40 L210,120 L240,60 L270,140 L300,50 L330,130 L360,30 L390,120 L420,60 L450,150 L480,80 L510,160 L540,90 L570,170 L600,60 L630,140 L660,50 L690,130 L720,70 L750,150 L780,60 L810,140 L840,40 L870,130 L900,70 L930,150 L960,80 L1000,120 L1000,200 Z" fill="%231a1636"/></svg>');
+            background-size: 800px 100%;
+            z-index: 2;
+            opacity: 0.8;
+        }
+
+        .forest-mid {
+            height: 25%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 200" preserveAspectRatio="none"><path d="M0,200 L0,100 L40,140 L80,50 L120,130 L160,60 L200,150 L240,40 L280,120 L320,70 L360,160 L400,30 L440,110 L480,80 L520,150 L560,50 L600,140 L640,60 L680,130 L720,40 L760,150 L800,70 L840,160 L880,50 L920,130 L960,80 L1000,150 L1000,200 Z" fill="%230f1123"/></svg>');
+            background-size: 600px 100%;
+            z-index: 3;
+        }
+
+        .forest-front {
+            height: 12%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 200" preserveAspectRatio="none"><path d="M0,200 L0,130 L50,60 L100,150 L150,40 L200,130 L250,70 L300,160 L350,50 L400,140 L450,80 L500,150 L550,40 L600,130 L650,60 L700,150 L750,50 L800,140 L850,70 L900,160 L950,40 L1000,130 L1000,200 Z" fill="%2306080e"/></svg>');
+            background-size: 400px 100%;
+            z-index: 4;
+        }
+
+        /* --- LIENZO PRINCIPAL DEL RAMO --- */
+        .bouquet-wrapper {
+            position: absolute;
+            bottom: 12%; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            display: flex;
+            justify-content: center;
+            z-index: 10;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .ground-shadow {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 20px;
+            background: rgba(0,0,0,0.8);
+            border-radius: 50%;
+            filter: blur(10px);
+            z-index: 1;
+        }
+
+        #fireflies-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        .firefly {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: #d4ff00;
+            border-radius: 50%;
+            box-shadow: 0 0 10px 2px #d4ff00;
+            animation: float-firefly infinite ease-in-out alternate, blink-firefly infinite alternate;
+        }
+
+        #tie-point {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            z-index: 10;
+        }
+
+        .flower {
+            position: absolute;
+            top: 0;
+            transform-origin: 0 0;
+            animation: sway 4s ease-in-out infinite alternate;
+            pointer-events: none; 
+        }
+
+        .stem-top { position: absolute; bottom: 0; left: 0; width: 0; }
+        .stem-bottom { position: absolute; top: 0; left: 0; width: 0; }
+
+        .petals {
+            position: absolute;
+            top: -45px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 50px;
+            z-index: 5;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+        }
+
+        .petal {
+            position: absolute;
+            bottom: 0;
+            width: 24px;
+            height: 45px;
+            border-radius: 50% 50% 50% 50% / 80% 80% 20% 20%;
+            background: var(--p-color);
+            transition: background 0.5s;
+        }
+
+        .petal.left { left: -4px; transform: rotate(-22deg); filter: brightness(0.75); }
+        .petal.right { right: -4px; transform: rotate(22deg); filter: brightness(0.75); }
+        .petal.center { left: 50%; transform: translateX(-50%); width: 30px; height: 50px; z-index: 2; }
+
+        .leaf {
+            position: absolute;
+            width: 16px;
+            height: 50px;
+            background: linear-gradient(to top right, #336636, #4a8f4e); 
+            border-radius: 0 100% 0 100%;
+            transform-origin: bottom center;
+        }
+
+        .ribbon-wrap {
+            position: absolute;
+            top: -12px;
+            left: -18px;
+            width: 36px;
+            height: 24px;
+            background: linear-gradient(to right, #800e2e, var(--ribbon-color), #800e2e);
+            border-radius: 4px;
+            z-index: 100;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+            pointer-events: none;
+        }
+
+        .ribbon-tail {
+            position: absolute;
+            top: 8px;
+            left: -20px;
+            width: 40px;
+            height: 50px;
+            background: var(--ribbon-color);
+            clip-path: polygon(10% 0, 90% 0, 100% 100%, 50% 80%, 0 100%);
+            z-index: 99;
+            pointer-events: none;
+        }
+
+        .ribbon-bow {
+            position: absolute;
+            top: -16px;
+            left: -30px;
+            width: 60px;
+            height: 30px;
+            z-index: 101;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+        
+        .bow-loop {
+            width: 25px;
+            height: 20px;
+            background: var(--ribbon-color);
+            border-radius: 50%;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.4);
+        }
+
+        /* --- CARTITA DE CONFESIÓN --- */
+        .envelope {
+            position: absolute;
+            top: 45px; 
+            left: -20px;
+            transform: rotate(5deg);
+            width: 40px;
+            height: 28px;
+            background: #fff0f5;
+            border: 2px solid #e0aebf;
+            border-radius: 4px;
+            z-index: 105;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: float-envelope 3s ease-in-out infinite;
+            padding: 10px; /* Toque fácil en móvil */
+            pointer-events: auto;
+        }
+        .envelope::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 14px solid #e0aebf;
+        }
+        .envelope::after {
+            content: '❤';
+            position: absolute;
+            font-size: 12px;
+            color: #c9184a;
+            top: 6px;
+        }
+        .envelope:hover {
+            transform: rotate(0deg) scale(1.15);
+            box-shadow: 0 8px 25px rgba(201, 24, 74, 0.8);
+        }
+
+        @keyframes float-envelope {
+            0%, 100% { margin-top: 0; }
+            50% { margin-top: -6px; }
+        }
+
+        @keyframes sway {
+            from { transform: rotate(calc(var(--rot) - 2deg)); }
+            to { transform: rotate(calc(var(--rot) + 2deg)); }
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.1; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 4px white; }
+        }
+
+        @keyframes float-firefly {
+            0% { transform: translate(0, 0); }
+            33% { transform: translate(20px, -30px); }
+            66% { transform: translate(-15px, -50px); }
+            100% { transform: translate(10px, -80px); }
+        }
+
+        @keyframes blink-firefly {
+            0%, 100% { opacity: 0.1; }
+            50% { opacity: 1; }
+        }
+
+        /* Modal para la Carta */
+        .letter-modal {
+            position: absolute; /* Relativo al app-frame */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 3000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        .letter-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .letter-paper {
+            background: #fffdf5;
+            padding: 30px 20px; 
+            border-radius: 8px;
+            width: 85%;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.6);
+            color: #4a4a4a;
+            font-family: 'Georgia', serif;
+            line-height: 1.6;
+            font-size: 0.95rem; 
+            position: relative;
+            transform: translateY(30px) scale(0.9);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background-image: repeating-linear-gradient(transparent, transparent 27px, #e8e8e8 27px, #e8e8e8 28px);
+            background-attachment: local;
+        }
+        .letter-modal.show .letter-paper {
+            transform: translateY(0) scale(1);
+        }
+        .close-letter {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 32px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            line-height: 1;
+            padding: 5px; 
+        }
+        .letter-paper::-webkit-scrollbar { width: 4px; }
+        .letter-paper::-webkit-scrollbar-track { background: transparent; }
+        .letter-paper::-webkit-scrollbar-thumb { background: #e0aebf; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <!-- Marco Restringido a Móvil -->
+    <div id="app-frame">
+        <div id="stars-container"></div>
+        <div class="moon"></div>
+        
+        <!-- Canvas para fuegos -->
+        <canvas id="fireworks-canvas"></canvas>
+
+        <div class="forest-layer forest-back"></div>
+        <div class="forest-layer forest-mid"></div>
+        <div class="forest-layer forest-front"></div>
+
+        <div id="fireflies-container"></div>
+
+        <!-- Ramo Interactivo -->
+        <div class="bouquet-wrapper" onclick="changeBouquetColor()" title="Toca para cambiar el color">
+            <div class="ground-shadow"></div>
+            <div id="tie-point"></div>
+            
+            <div class="ribbon-bow">
+                <div class="bow-loop" style="transform: rotate(-15deg);"></div>
+                <div class="bow-loop" style="transform: rotate(15deg);"></div>
+            </div>
+            <div class="ribbon-wrap"></div>
+            <div class="ribbon-tail"></div>
+            
+            <!-- Carta -->
+            <div class="envelope" onclick="openLetter(event)" title="Abrir confesión"></div>
+        </div>
+
+        <!-- Modal Confesión -->
+        <div class="letter-modal" id="letterModal">
+            <div class="letter-paper">
+                <span class="close-letter" onclick="closeLetter()">×</span>
+                <h2 style="color: #c9184a; text-align: center; margin-top: 5px; font-family: 'Georgia', serif; font-style: italic; font-size: 1.4rem;">Para la mi niña de ojos bonitos</h2>
+                <p>
+                    Atenea, desde el día en que te conocí sentí algo que no había sentido nunca le diste sentido a mis días y motivo para vivirlos.                </p>
+                <p>
+                    Quisiera decirte que este en este mundo pocas cosas valen la pena para para mi tu eres una de ellas una chica que ama incondicionalmente con todo su corazón, que es simplemente un amor de persona.
+                </p>
+                <p>
+                    Tu valor es incalculable eres los mas bello y valioso de este universo y no quisiera separarme nunca de tí, eres las mujer perfecta y más maravillosa nunca lo olvides, todos los días veo al cielo y recuerdo tu rostro, tus hermosos ojos claros que brillan al atardecer, tus hermosos labios que forman la sonrisa mas bella que han visto mis ojos, y que sepas que te amo con todas las fuerzas de mi corazón y te entrego este detalle.
+                </p>
+                <p style="text-align: right; font-style: italic; color: #c9184a; font-weight: bold; margin-top: 25px;">
+                    Con todo mi corazón,<br>Tu More
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const appFrame = document.getElementById('app-frame');
+
+        function createEnvironment() {
+            const starsContainer = document.getElementById('stars-container');
+            for(let i = 0; i < 100; i++) {
+                let star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 70 + '%'; 
+                let size = Math.random() * 2 + 0.5;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                star.style.animationDelay = (Math.random() * 5) + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        let currentPaletteIndex = 0;
+        const colorPalettes = [
+            [280, 260, 240], 
+            [340, 320, 300], 
+            [45, 35, 50],    
+            [0, 10, 350],    
+            [200, 180, 220]  
+        ];
+
+        function changeBouquetColor() {
+            currentPaletteIndex = (currentPaletteIndex + 1) % colorPalettes.length;
+            generateBouquet(); 
+        }
+
+        function generateBouquet() {
+            const container = document.getElementById('tie-point');
+            container.innerHTML = '';
+            
+            const count = 25; // Óptimo para móvil
+            const baseHues = colorPalettes[currentPaletteIndex]; 
+
+            for (let i = 0; i < count; i++) {
+                const flower = document.createElement('div');
+                flower.className = 'flower';
+                
+                const selectedHue = baseHues[Math.floor(Math.random() * baseHues.length)];
+                
+                let rand1 = Math.random();
+                let rand2 = Math.random();
+                let rand3 = Math.random();
+                let gaussian = (rand1 + rand2 + rand3 - 1.5) * 1.5; 
+                let angle = gaussian * 25; 
+
+                let baseHeight = 220 - Math.abs(angle) * 1.5; 
+                let topHeight = baseHeight + (Math.random() * 80 - 40); 
+                if (topHeight < 120) topHeight = 120; 
+
+                let bottomHeight = 60 + Math.random() * 40; 
+                let xOffset = (Math.random() * 12 - 6); 
+                let zIndex = Math.floor(Math.random() * 50);
+                
+                let curve = (Math.random() - 0.5) * 35; 
+                let botCurve = -curve * (bottomHeight / topHeight); 
+
+                const stemLight = '#5a965d';
+                const stemMid = '#3e7542';
+                const stemDark = '#254a28';
+
+                const h = selectedHue + (Math.random() * 20 - 10); 
+                const s = 70 + Math.random() * 25; 
+                const l = 30 + Math.random() * 20; 
+                const color = `hsl(${h}, ${s}%, ${l}%)`;
+                const darkColor = `hsl(${h}, ${s}%, ${l - 20}%)`; 
+
+                flower.style.setProperty('--rot', `${angle}deg`);
+                flower.style.setProperty('--p-color', color);
+                flower.style.left = `${xOffset}px`;
+                flower.style.zIndex = zIndex;
+                flower.style.transform = `rotate(${angle}deg)`;
+                flower.style.animationDelay = `${Math.random() * -5}s`;
+
+                let leaves = '';
+                if(Math.random() > 0.85) { 
+                    let leafY = Math.random() * (topHeight * 0.4) + 20;
+                    let t = leafY / topHeight;
+                    let deviation = 2 * (1 - t) * t * curve; 
+                    leaves += `<div class="leaf" style="bottom: ${leafY}px; left: ${-8 + deviation}px; transform: rotate(-35deg); z-index: -1;"></div>`;
+                }
+                if(Math.random() > 0.85) { 
+                    let leafY = Math.random() * (topHeight * 0.4) + 20;
+                    let t = leafY / topHeight;
+                    let deviation = 2 * (1 - t) * t * curve;
+                    leaves += `<div class="leaf" style="bottom: ${leafY}px; left: ${-8 + deviation}px; transform: rotate(35deg) scaleX(-1); z-index: 2;"></div>`;
+                }
+
+                flower.innerHTML = `
+                    <div class="stem-top" style="height: ${topHeight}px;">
+                        <svg width="40" height="${topHeight}" style="position: absolute; bottom: 0; left: -20px; z-index: 0; overflow: visible;">
+                            <defs>
+                                <linearGradient id="gradT-${i}" x1="0%" y1="100%" x2="0%" y2="0%">
+                                    <stop offset="0%" stop-color="${stemMid}" />
+                                    <stop offset="100%" stop-color="${stemLight}" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M 20,${topHeight} Q ${20 + curve},${topHeight/2} 20,0" fill="none" stroke="url(#gradT-${i})" stroke-width="3.5" stroke-linecap="round"/>
+                        </svg>
+                        <div class="petals">
+                            <div class="petal left" style="background: linear-gradient(to bottom, ${color}, ${darkColor})"></div>
+                            <div class="petal right" style="background: linear-gradient(to bottom, ${color}, ${darkColor})"></div>
+                            <div class="petal center" style="background: linear-gradient(to top, ${darkColor}, ${color})"></div>
+                        </div>
+                        ${leaves}
+                    </div>
+                    <div class="stem-bottom" style="height: ${bottomHeight}px;">
+                        <svg width="40" height="${bottomHeight}" style="position: absolute; top: 0; left: -20px; z-index: 0; overflow: visible;">
+                            <defs>
+                                <linearGradient id="gradB-${i}" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="${stemMid}" />
+                                    <stop offset="100%" stop-color="${stemDark}" />
+                                </linearGradient>
+                            </defs>
+                            <path d="M 20,0 Q ${20 + botCurve},${bottomHeight/2} 20,${bottomHeight}" fill="none" stroke="url(#gradB-${i})" stroke-width="3.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                `;
+                container.appendChild(flower);
+            }
+
+            const firefliesContainer = document.getElementById('fireflies-container');
+            firefliesContainer.innerHTML = '';
+            for(let i = 0; i < 15; i++) {
+                let firefly = document.createElement('div');
+                firefly.className = 'firefly';
+                firefly.style.left = (Math.random() * 100) + '%';
+                firefly.style.bottom = (Math.random() * 60) + '%'; 
+                firefly.style.animationDuration = (Math.random() * 4 + 4) + 's, ' + (Math.random() * 2 + 1) + 's';
+                firefly.style.animationDelay = (Math.random() * 4) + 's, ' + (Math.random() * 4) + 's';
+                firefliesContainer.appendChild(firefly);
+            }
+        }
+
+        // --- SISTEMA DE FUEGOS ARTIFICIALES RESOLUCIÓN 1:1 ---
+        let palabrasMagicas = [
+            "Mi more", "Amorcito", "Dulcesito", 
+            "Terroncito de azúcar", "Mi niña", 
+            "Princesita", "Pastelito", "Atenea",
+            "Nea", "Ateni", "Nicoli"
+        ];
+        
+        const fwCanvas = document.getElementById('fireworks-canvas');
+        const fwCtx = fwCanvas.getContext('2d');
+        let fwWidth, fwHeight;
+        let particles = [];
+        let fireworks = [];
+
+        function resizeCanvas() {
+            // Ahora toma las medidas del marco celular, no de la pantalla completa
+            fwWidth = appFrame.clientWidth;
+            fwHeight = appFrame.clientHeight;
+            fwCanvas.width = fwWidth;
+            fwCanvas.height = fwHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        class Particle {
+            constructor(x, y, tx, ty, color) {
+                this.x = x;
+                this.y = y;
+                this.tx = tx; 
+                this.ty = ty; 
+                this.color = color;
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 18 + 2; 
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                
+                this.life = 180 + Math.random() * 40;
+                this.maxLife = this.life;
+                
+                // Partículas pequeñas para definir la letra perfecta como pantalla retina
+                this.size = Math.random() * 1 + 0.8; 
+                this.timer = 0; 
+            }
+
+            update() {
+                this.timer++;
+
+                if (this.timer < 30) {
+                    this.vx *= 0.90; 
+                    this.vy *= 0.90;
+                    this.vy += 0.25; 
+                } 
+                else {
+                    const dx = this.tx - this.x;
+                    const dy = this.ty - this.y;
+                    
+                    this.vx += dx * 0.04;
+                    this.vy += dy * 0.04;
+                    
+                    this.vx *= 0.82;
+                    this.vy *= 0.82;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+            }
+
+            draw(ctx) {
+                ctx.globalAlpha = Math.max(0, this.life / this.maxLife);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        class Firework {
+            constructor(text, xPos) {
+                this.x = xPos;
+                this.y = fwHeight;
+                // Explotan entre el 10% y el 40% de la altura de la pantalla
+                this.targetY = fwHeight * 0.10 + Math.random() * (fwHeight * 0.30); 
+                this.color = `hsl(${Math.random() * 360}, 100%, 75%)`;
+                this.state = 'launching';
+                this.speed = 12 + ((fwHeight - this.targetY) / fwHeight) * 8; 
+                this.text = text;
+            }
+
+            update() {
+                if (this.state === 'launching') {
+                    this.y -= this.speed;
+                    this.speed *= 0.97; 
+                    if (this.speed < 1 || this.y <= this.targetY) {
+                        this.explode();
+                    }
+                }
+            }
+
+            draw(ctx) {
+                if (this.state === 'launching') {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            explode() {
+                this.state = 'exploded';
+                const textCoords = getTextCoordinates(this.text);
+                textCoords.forEach(coord => {
+                    const tx = this.x + coord.x;
+                    const ty = this.y + coord.y;
+                    particles.push(new Particle(this.x, this.y, tx, ty, this.color));
+                });
+            }
+        }
+
+        function getTextCoordinates(text) {
+            const osCanvas = document.createElement('canvas');
+            const osCtx = osCanvas.getContext('2d', { willReadFrequently: true });
+            
+            // Dibujamos el texto exactamente del mismo ancho que el celular (1:1), sin distorsiones
+            osCanvas.width = fwWidth;
+            osCanvas.height = fwHeight * 0.4; // Espacio superior del celular
+            
+            osCtx.fillStyle = "black";
+            osCtx.fillRect(0, 0, osCanvas.width, osCanvas.height);
+            
+            // Tamaño de letra dinámico basado en el ancho del celular
+            let fontSize = fwWidth * 0.12; 
+            if (fontSize > 45) fontSize = 45; // Limitar el tamaño máximo
+            
+            osCtx.font = `bold ${fontSize}px 'Segoe UI', sans-serif`;
+            osCtx.fillStyle = "white";
+            osCtx.textAlign = "center";
+            osCtx.textBaseline = "middle";
+            
+            if (text.includes(' ')) {
+                const words = text.split(' ');
+                const lineHeight = fontSize * 1.2;
+                const startY = (osCanvas.height / 2) - ((words.length - 1) * lineHeight) / 2;
+                
+                words.forEach((word, index) => {
+                    osCtx.fillText(word, osCanvas.width / 2, startY + (index * lineHeight));
+                });
+            } else {
+                osCtx.fillText(text, osCanvas.width / 2, osCanvas.height / 2);
+            }
+
+            const imgData = osCtx.getImageData(0, 0, osCanvas.width, osCanvas.height);
+            const coords = [];
+
+            // Como la escala es 1:1, escaneamos píxeles con un paso corto y fijo (4px) para mayor detalle
+            const step = 4; 
+
+            for (let y = 0; y < osCanvas.height; y += step) {
+                for (let x = 0; x < osCanvas.width; x += step) {
+                    const idx = (y * osCanvas.width + x) * 4;
+                    if (imgData.data[idx] > 128) {
+                        coords.push({
+                            x: (x - osCanvas.width / 2),
+                            y: (y - osCanvas.height / 2)
+                        });
+                    }
+                }
+            }
+            return coords;
+        }
+
+        function launchFireworkPair() {
+            const word = palabrasMagicas[Math.floor(Math.random() * palabrasMagicas.length)];
+            const isLeft = Math.random() > 0.5;
+            
+            const xLeft = fwWidth * 0.25;
+            const xRight = fwWidth * 0.75;
+            
+            const xMain = isLeft ? xLeft : xRight;
+            const xTeAmo = isLeft ? xRight : xLeft;
+            
+            fireworks.push(new Firework(word, xMain));
+            
+            setTimeout(() => {
+                fireworks.push(new Firework("Te amo", xTeAmo));
+            }, 600 + Math.random() * 800);
+        }
+
+        function animateFireworks() {
+            fwCtx.globalCompositeOperation = 'destination-out';
+            fwCtx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+            fwCtx.fillRect(0, 0, fwWidth, fwHeight);
+            fwCtx.globalCompositeOperation = 'lighter';
+
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                fireworks[i].update();
+                fireworks[i].draw(fwCtx);
+                if (fireworks[i].state === 'exploded') {
+                    fireworks.splice(i, 1);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                particles[i].draw(fwCtx);
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(animateFireworks);
+        }
+
+        // --- FUNCIONES DE LA CARTITA ---
+        function openLetter(event) {
+            if(event) event.stopPropagation(); 
+            document.getElementById('letterModal').classList.add('show');
+        }
+
+        function closeLetter() {
+            document.getElementById('letterModal').classList.remove('show');
+        }
+
+        window.onload = () => {
+            resizeCanvas();
+            createEnvironment();
+            generateBouquet(); 
+            animateFireworks();
+            
+            setTimeout(launchFireworkPair, 1500);
+            setInterval(launchFireworkPair, 5000);
+        };
+    </script>
+</body>
+</html>
